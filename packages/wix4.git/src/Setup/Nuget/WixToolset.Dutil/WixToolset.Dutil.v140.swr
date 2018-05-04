@@ -1,3 +1,0 @@
-folder native:\v140
-  file x86\dutil.lib source=x86\2015\dutil.lib
-  file x64\dutil.lib source=x64\2015\dutil.lib
