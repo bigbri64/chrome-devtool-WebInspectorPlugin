@@ -5,9 +5,338 @@
  */
 window.WebInspectorPlugin = {
 
-    saveWorkspace : function (options) {
+    initOptions : function (defaultOptions) {
 
-        options = options || {inspectedPageDomain : null, verbose : true, skipInvalidFiles : true};
+
+        var _PLUGIN_getOption = function (_options, optionName, defaultOptionValue) {
+            // WebInspectorPlugin._COMMAND_OPTIONS_
+            // defaultOptionValue = (typeof defaultOptionValue == "undefined") ? false : defaultOptionValue;
+            /** @type {CommandOption} */
+            var optionValue = _options.hasOwnProperty(optionName) ? _options[optionName] : defaultOptionValue;
+
+            return optionValue.value;
+        };
+        var _PLUGIN_setOption = function (_options, optionName, optionValue) {
+            // WebInspectorPlugin._COMMAND_OPTIONS_
+            _options[optionName] = optionValue;
+        };
+
+        /**
+         * @param optionName {String}
+         * @param optionValue {Object}
+         * @constructor
+         */
+        function CommandOption(optionName, optionValue) {
+            /** @type {String} */
+            this.name = optionName;
+            /** @type {String} */
+            this.key = optionName;
+            /** @type {Object} */
+            this.value = optionValue;
+        }
+
+        /**
+         * @returns {Object}
+         */
+        CommandOption.prototype.getOption = function () {
+            return this.value;
+        };
+
+        /**
+         * @param _value {Object}
+         * @returns {Object}
+         */
+        CommandOption.prototype.setOption = function (_value) {
+            var previousValue = this.value;
+            this.value = _value;
+            // return previousValue;
+            return this.value;
+        };
+
+        /**
+         * @returns {string}
+         */
+        CommandOption.prototype.toString = function () {
+            // var _template = 'option { name: \'_NAME_\', value: \'_VALUE_\' }';
+            var _template = '\'_NAME_\': _VALUE_';
+            var _message = _template
+                .replace(/_NAME_/g, this.name)
+                .replace(/_VALUE_/g, this.value);
+            return _message;
+        };
+
+        /**
+         * @param options
+         * @param defaultOptions
+         * @constructor
+         */
+        function CommandOptionSet(options, defaultOptions) {
+            /** @type {[]<CommandOption>} */
+            this.options = (typeof options === "undefined") ? {} : options;
+            this.updateOptions(defaultOptions);
+        }
+
+        /**
+         * @param optionName
+         * @param defaultOptionValue
+         */
+        CommandOptionSet.prototype.getOption = function (optionName, defaultOptionValue) {
+            return _PLUGIN_getOption(this.options, optionName, defaultOptionValue);
+        };
+
+        /**
+         * @param optionName
+         * @param optionValue
+         */
+        CommandOptionSet.prototype.setOption = function (optionName, optionValue) {
+            return _PLUGIN_setOption(this.options, optionName, optionValue);
+        };
+
+        /**
+         * @param defaultOptions
+         * @returns {CommandOptionSet}
+         */
+        CommandOptionSet.prototype.updateOptions = function (defaultOptions) {
+            defaultOptions = defaultOptions || {};
+            for (var optionName in defaultOptions) {
+                if ((optionName !== null) && defaultOptions.hasOwnProperty(optionName)) {
+                    var optionValue = defaultOptions[optionName];
+                    this.setOption(optionName, optionValue);
+                }
+            }
+        };
+
+        /**
+         * @param optionName
+         * @param optionValue
+         * @returns {CommandOption}
+         */
+        CommandOptionSet.prototype.addOption = function (optionName, optionValue) {
+
+            // var _options = WebInspectorPlugin._OPTIONS_;
+
+            // var _option = {
+            //     name: optionName,
+            //     key: optionName,
+            //     value: optionValue,
+            //     getOption : function() {
+            //         return getOption(WebInspectorPlugin._OPTIONS_, this.key, this.value);
+            //     },
+            //     setOption : function(_value) {
+            //         return setOption(WebInspectorPlugin._OPTIONS_, this.key, _value);
+            //     }
+            // };
+
+            var _option = new CommandOption(optionName, optionValue);
+
+            this.options[_option.name] = _option;
+
+            return _option;
+        };
+
+        /**
+         * @returns {*[].<CommandOption>}
+         */
+        CommandOptionSet.prototype.listOptions = function () {
+            /** @type {[]<CommandOption>} */
+            var _optionList = [];
+            for (var optionName in this.options) {
+                if (this.options.hasOwnProperty(optionName)) {
+                    var optionValue = this.options[optionName];
+                    _optionList.push(optionValue.toString());
+                }
+            }
+            return _optionList;
+        };
+
+        /**
+         * @returns {string}
+         */
+        CommandOptionSet.prototype.toString = function () {
+            // var _template = 'option { name: \'_NAME_\', value: \'_VALUE_\' }';
+            var _template = 'OptionSet {\n_OPTION_LIST_\n}';
+            var _message = _template
+                .replace(/_OPTION_LIST_/g, this.listOptions().join('\n'))
+            return _message;
+        };
+
+        /**
+         * @param pluginOptions
+         * @param defaultOptions
+         * @constructor
+         */
+        function WebInspectorPluginOptionSet(pluginOptions, defaultOptions) {
+            /** @type {Object} */
+            this.options = (typeof pluginOptions === "undefined") ? WebInspectorPlugin._OPTIONS_ : pluginOptions;
+            /** @type {CommandOptionSet} */
+            this.optionSet = new CommandOptionSet(this.options);
+
+            this.initOptions();
+            this.updateOptions(defaultOptions);
+
+            console.log('OPTIONS:\n_OPTIONS_\n'.replace(/_OPTIONS_/g, this.optionSet.toString()));
+        }
+
+        /**
+         * @returns {CommandOptionSet}
+         */
+        WebInspectorPluginOptionSet.prototype.initOptions = function () {
+
+            this.optionSet.addOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_create_dir_list, true);
+            this.optionSet.addOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_move_file_list, true);
+            this.optionSet.addOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_curl_command_file_list, true);
+            this.optionSet.addOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_all_urls, false);
+            this.optionSet.addOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_valid_urls, true);
+            this.optionSet.addOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_resources, true);
+            this.optionSet.addOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_source_files, true);
+
+            this.optionSet.addOption(WebInspectorPlugin._PLUGIN_OPTIONS_.inspectedPageDomain, null);
+            this.optionSet.addOption(WebInspectorPlugin._PLUGIN_OPTIONS_.verbose, true);
+            this.optionSet.addOption(WebInspectorPlugin._PLUGIN_OPTIONS_.skipInvalidFiles, true);
+
+            return this.optionSet;
+        };
+        /**
+         * @param defaultOptions
+         * @returns {CommandOptionSet}
+         */
+        WebInspectorPluginOptionSet.prototype.updateOptions = function (defaultOptions) {
+
+            defaultOptions = defaultOptions || {};
+            this.optionSet.updateOptions(defaultOptions);
+
+            console.log('UPDATE OPTIONS:\n_OPTIONS_\n'.replace(/_OPTIONS_/g, this.optionSet.toString()));
+
+            return this.optionSet;
+        };
+
+        /**
+         * @param optionName
+         * @param defaultOptionValue
+         * @return {Object}
+         */
+        WebInspectorPluginOptionSet.prototype.getOption = function (optionName, defaultOptionValue) {
+            return this.optionSet.getOption(optionName, defaultOptionValue);
+        };
+        /**
+         * @param optionName
+         * @param optionValue
+         * @return {Object}
+         */
+        WebInspectorPluginOptionSet.prototype.setOption = function (optionName, optionValue) {
+            return this.optionSet.setOption(optionName, optionValue);
+        };
+
+
+        WebInspectorPlugin._COMMAND_OPTIONS_ = {
+            save_create_dir_list : 'save-create-dir-list',
+            save_move_file_list : 'save-move-file-list',
+            save_curl_command_file_list : 'save-curl-command-file-list',
+            save_all_urls : 'save-all-urls',
+            save_valid_urls : 'save-valid-urls',
+            save_resources : 'save-resources',
+            save_source_files : 'save-source-files'
+        };
+        WebInspectorPlugin._PLUGIN_OPTIONS_ = {
+            inspectedPageDomain : 'inspectedPageDomain',
+            verbose : 'verbose',
+            skipInvalidFiles : 'skipInvalidFiles'
+        };
+
+        // WebInspectorPlugin._OPTIONS_ = {
+        //     'save-create-dir-list' : true,
+        //     'save-move-file-list' : true,
+        //     'save-curl-command-file-list' : true,
+        //     'save-all-urls' : false,
+        //     'save-valid-urls' : true,
+        //     'save-resources' : true,
+        //     'save-source-files' : true
+        // };
+
+        /** @type {Object} */
+        WebInspectorPlugin._OPTIONS_ = {};
+        /** @type {WebInspectorPluginOptionSet} */
+        WebInspectorPlugin._OPTION_SET_ = new WebInspectorPluginOptionSet(WebInspectorPlugin._OPTIONS_, defaultOptions);
+        WebInspectorPlugin._OPTION_SET_.updateOptions(defaultOptions);
+
+        WebInspectorPlugin._USE_WINDOWS_END_OF_LINE_ = true;
+        WebInspectorPlugin._ABORT_ = false;
+        WebInspectorPlugin._QUIET_MODE_ = false;
+    },
+
+    /**
+     * @param optionName
+     * @returns {boolean}
+     */
+    hasOption : function (optionName) {
+        /** @type {WebInspectorPluginOptionSet} */
+        var _optionSet = WebInspectorPlugin._OPTION_SET_;
+        return _optionSet.options.hasOwnProperty(optionName);
+    },
+    /**
+     * @param optionName
+     * @return {Object}
+     */
+    getOption : function (optionName) {
+        /** @type {WebInspectorPluginOptionSet} */
+        var _optionSet = WebInspectorPlugin._OPTION_SET_;
+        return _optionSet.getOption(optionName);
+    },
+    /**
+     * @param optionName
+     * @param optionValue
+     * @return {Object}
+     */
+    setOption : function (optionName, optionValue) {
+        /** @type {WebInspectorPluginOptionSet} */
+        var _optionSet = WebInspectorPlugin._OPTION_SET_;
+        return _optionSet.setOption(optionName, optionValue);
+    },
+
+    /**
+     * @param defaultOptions
+     */
+    initPlugin : function (defaultOptions) {
+
+        var _PLUGIN_ = this;
+
+        // WebInspectorPlugin.hasOption = function (optionName) {
+        //     /** @type {WebInspectorPluginOptionSet} */
+        //     var _optionSet = WebInspectorPlugin._OPTION_SET_;
+        //     return _optionSet.options.hasOwnProperty(optionName);
+        // };
+        // WebInspectorPlugin.getOption = function (optionName) {
+        //     /** @type {WebInspectorPluginOptionSet} */
+        //     var _optionSet = WebInspectorPlugin._OPTION_SET_;
+        //     _optionSet.getOption(optionName);
+        // };
+        // WebInspectorPlugin.setOption = function (optionName, optionValue) {
+        //     /** @type {WebInspectorPluginOptionSet} */
+        //     var _optionSet = WebInspectorPlugin._OPTION_SET_;
+        //     _optionSet.setOption(optionName, optionValue);
+        // };
+
+        _PLUGIN_.initOptions(defaultOptions);
+    },
+
+    /**
+     * @param defaultOptions
+     */
+    runPlugin : function (defaultOptions) {
+
+        var _PLUGIN_ = this;
+
+        this.initPlugin(defaultOptions);
+
+        this._saveWorkspace();
+    },
+
+    /**
+     * @private
+     */
+    _saveWorkspace : function () {
+
+        var _PLUGIN_ = this;
 
         /**
          * @type {FileInfo}
@@ -53,19 +382,16 @@ window.WebInspectorPlugin = {
             //WebInspector.workspace.projectsForType(WebInspector.projectTypes.Network)
             var _pageDomain_ = '_web_url_';
             try {
-                var inspectedPageDomain = null;
-                if (options.hasOwnProperty('inspectedPageDomain')) {
-                    inspectedPageDomain = options['inspectedPageDomain'];
-                }
+                var inspectedPageDomain = _PLUGIN_.getOption('inspectedPageDomain');
                 if (!inspectedPageDomain) {
                     /** @type {Array} */
-                    //var _projects = WebInspector.workspace.projectsForType(WebInspector.projectTypes.Network);
+                        //var _projects = WebInspector.workspace.projectsForType(WebInspector.projectTypes.Network);
                     var _projects = Workspace.workspace.projectsForType(Workspace.projectTypes.Network);
                     //var _sourceCodeList = _projects[0]._uiSourceCodesList;
                     //var lastIndex = _projects.length - 1;
-                    var _sourceCodeList = _projects[_projects.length-1].uiSourceCodes();
+                    var _sourceCodeList = _projects[_projects.length - 1].uiSourceCodes();
                     inspectedPageDomain = _sourceCodeList[0]._origin;
-                    options['inspectedPageDomain'] = inspectedPageDomain;
+                    _PLUGIN_.setOption('inspectedPageDomain', inspectedPageDomain);
                     console.log('inspectedPageDomain = ' + inspectedPageDomain);
                 }
                 _pageDomain_ = inspectedPageDomain;
@@ -79,11 +405,11 @@ window.WebInspectorPlugin = {
 
         var showPanel = function (name) {
             try {
-                if (name == 'sources') {
+                if (name === 'sources') {
                     //WebInspector.inspectorView.setCurrentPanel(WebInspector.panels.sources);
                     UI.viewManager.showView('sources');
                 }
-                else if (name == 'resources') {
+                else if (name === 'resources') {
                     //WebInspector.inspectorView.setCurrentPanel(WebInspector.panels.resources);
                     UI.viewManager.showView('resources');
                 }
@@ -255,10 +581,10 @@ window.WebInspectorPlugin = {
             var _delegate_ = {
                 getPropertyValue : function (data) {
                     var propertyValue = data;
-                    if (typeof propertyName == 'string') {
+                    if (typeof propertyName === 'string') {
                         propertyValue = (propertyName in data) ? data[propertyName] : data;
                     }
-                    else if (typeof propertyName == 'function') {
+                    else if (typeof propertyName === 'function') {
                         propertyValue = propertyName(data);
                     }
                     return propertyValue;
@@ -311,7 +637,7 @@ window.WebInspectorPlugin = {
         // console log
         ///////////////////////////////////////////////////////////////////////////////
         var joinList = function (list, separator) {
-            if (!list || !(typeof list.join == 'function')) {
+            if (!list || !(typeof list.join === 'function')) {
                 console.log('Invalid list type for join: ' + list);
                 debugger;
                 return list;
@@ -372,10 +698,10 @@ window.WebInspectorPlugin = {
             var fileName = prefix + '-' + suffix + '.' + extension;
 
             var formattedText = '';
-            if (typeof dataList == 'string') {
+            if (typeof dataList === 'string') {
                 formattedText = dataList;
             }
-            else if (typeof dataList.join == 'function') {
+            else if (typeof dataList.join === 'function') {
                 formattedText = '\"' + dataList.join('",\n"') + '\"';
             }
             else {
@@ -404,7 +730,7 @@ window.WebInspectorPlugin = {
                     'fileName: ' + fileInfo.fileName + ', ' +
                     'storedFileName: ' + fileInfo.storedFileName;
                 //console.log(logMessage);
-                if (options.skipInvalidFiles && !fileInfo.isValid) {
+                if (_PLUGIN_.getOption('skipInvalidFiles') && !fileInfo.isValid) {
                     //console.log('IGNORE SAVE ON INVALID FILE: ' + fileInfo.fullPath);
                     return false;
                 }
@@ -431,7 +757,7 @@ window.WebInspectorPlugin = {
 
             if ((!fileContent) && ('workingCopy' in sourceCode)) {
                 fileContent = sourceCode.workingCopy;
-                if (typeof fileContent == 'function') {
+                if (typeof fileContent === 'function') {
                     fileContent = fileContent.call(sourceCode);
                 }
                 if (!!fileContent) {
@@ -452,9 +778,39 @@ window.WebInspectorPlugin = {
         };
 
         ///////////////////////////////////////////////////////////////////////////////
+        var nonNullStringValue = function (value) {
+            if (value === null) {
+                return "";
+            }
+            return value;
+        };
+
+        ///////////////////////////////////////////////////////////////////////////////
+        var checkCommandOption = function (optionName) {
+            var optionValue = null;
+            if (WebInspectorPlugin._ABORT_) {
+                console.log('WARN: execution flag {_ABORT_} is set...')
+                optionValue = false;
+                return optionValue;
+            }
+            else {
+                if (_PLUGIN_.hasOption(optionName)) {
+                    optionValue = _PLUGIN_.getOption(optionName);
+                }
+                else {
+                    console.log('WARN: option flag {' + optionName + '} is not defined');
+                    optionValue = false;
+                }
+            }
+            console.log('INFO: option flag {' + optionName + '}=' + optionValue);
+            return optionValue;
+        };
+
+        ///////////////////////////////////////////////////////////////////////////////
         var saveAll = function (sourceCodeList) {
             for (var i = 0; i < sourceCodeList.length; i++) {
                 if (WebInspectorPlugin._ABORT_) {
+                    console.log('WARNING: execution flag {_ABORT_} is set...')
                     return;
                 }
                 var sourceCode = sourceCodeList[i];
@@ -552,7 +908,7 @@ window.WebInspectorPlugin = {
 
         debugger;
 
-        if (WebInspectorPlugin._OPTIONS_['save-create-dir-list']) {
+        if (checkCommandOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_create_dir_list)) {
             console.log('\n\nPATH LIST...');
             listDirectories(sortList(sourceFileList), filterInvalidURLs);
             var _mkdir_cmd_ = 'mkdir ' + getSourceCodeDirectoryList(sourceFileList, filterInvalidURLs).join('\nmkdir ');
@@ -560,7 +916,7 @@ window.WebInspectorPlugin = {
             saveAsCSV(_mkdir_cmd_, 'create-dir-list');
 
         }
-        if (WebInspectorPlugin._OPTIONS_['save-move-file-list']) {
+        if (checkCommandOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_move_file_list)) {
             var _move_file_delegate_ = function (data) {
                 return 'move /Y ' + data.storedFileName + ' ' + data.filePath;
             };
@@ -570,19 +926,66 @@ window.WebInspectorPlugin = {
             _move_cmd_ = _move_cmd_ + '\n';
             saveAsCSV(_move_cmd_, 'move-file-list');
         }
-        if (WebInspectorPlugin._OPTIONS_['save-all-urls']) {
+        if (checkCommandOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_curl_command_file_list)) {
+            debugger;
+            var _curl_file_delegate_ = function (data) {
+
+                /** @type {RegExp} */
+                var regex_pattern = /\"(http\:\/\/|https\:\/\/)(.+)\"\,?'/gmi;
+                /** @type {string} */
+                var regex_replace_text = 'curl --create-dirs --output $2 $1$2';
+
+                // /** @type {string} */
+                // var regex_pattern_text = '\"(http\:\/\/|https\:\/\/)(.+)\"\,?';
+                // /** @type {RegExp} */
+                // var regex = new RegExp(regex_pattern_text, 'gim');
+
+                /** @type {string} */
+                var curl_command_template_text = 'curl --create-dirs --output _FILEPATH__FILE_SEPARATOR__FILENAME_ _CONTENT_URL_';
+
+                /** @type {string} */
+                var _contentURL = nonNullStringValue(data.contentURL);
+                /** @type {string} */
+                var _fileName = nonNullStringValue(data.fileName);
+                /** @type {string} */
+                var _filePath = nonNullStringValue(data.filePath);
+                /** @type {string} */
+                var _fullPath = nonNullStringValue(data.fullPath);
+                /** @type {string} */
+                var _storedFileName = nonNullStringValue(data.storedFileName);
+
+                // var formattedCommand = _contentURL.replace(regex_pattern, regex_replace_text);
+                // var formattedCommand = String.prototype.replace.call(_contentURL, regex_pattern, regex_replace_text);
+                var formattedCommand = curl_command_template_text
+                    .replace(/_FILEPATH_/g, _filePath)
+                    .replace(/_FILE_SEPARATOR_/g, '\\')
+                    .replace(/_FILENAME_/g, _storedFileName)
+                    .replace(/_CONTENT_URL_/g, _contentURL);
+
+                // return 'move /Y ' + data.storedFileName + ' ' + data.filePath;
+
+                return formattedCommand;
+            };
+            var _curl_cmd_list = getValuesByPropertyName(sourceFileList, _curl_file_delegate_, filterInvalidURLs);
+            // var _curl_cmd_list = getValuesByPropertyName(sourceFileList, 'contentURL', filterInvalidURLs);
+
+            var _curl_cmd_ = _curl_cmd_list.join('\n');
+            _curl_cmd_ = _curl_cmd_ + '\n';
+            saveAsCSV(_curl_cmd_, 'curl-command-file-list');
+        }
+        if (checkCommandOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_all_urls)) {
             console.log('\n\nALL-URL LIST...');
             saveAsCSV(sortList(getSourceCodeURLs(sourceFileList)), 'all-urls');
         }
-        if (WebInspectorPlugin._OPTIONS_['save-valid-urls']) {
+        if (checkCommandOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_valid_urls)) {
             console.log('\n\nVALID-URL LIST...');
             saveAsCSV(sortList(getSourceCodeURLs(sourceFileList, filterInvalidURLs)), 'valid-urls');
         }
-        if (WebInspectorPlugin._OPTIONS_['save-resources']) {
+        if (checkCommandOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_resources)) {
             console.log('\n\nRESOURCE LIST...');
             saveAsCSV(getResourceFileList(filterInvalidURLs), 'resources');
         }
-        if (WebInspectorPlugin._OPTIONS_['save-source-files']) {
+        if (checkCommandOption(WebInspectorPlugin._COMMAND_OPTIONS_.save_source_files)) {
             console.log('\n\nSAVE...');
             saveAll(sourceFileList);
         }
@@ -590,19 +993,7 @@ window.WebInspectorPlugin = {
 
 };
 
-WebInspectorPlugin._OPTIONS_ = {
-    'save-create-dir-list' : true,
-    'save-move-file-list' : true,
-    'save-all-urls' : false,
-    'save-valid-urls' : true,
-    'save-resources' : true,
-    'save-source-files' : true
-};
-
-WebInspectorPlugin._USE_WINDOWS_END_OF_LINE_ = true;
-WebInspectorPlugin._ABORT_ = false;
-WebInspectorPlugin._QUIET_MODE_ = false;
-
-WebInspectorPlugin.saveWorkspace();
+/** @type {WebInspectorPlugin} */
+WebInspectorPlugin.runPlugin();
 
 delete window.WebInspectorPlugin;
