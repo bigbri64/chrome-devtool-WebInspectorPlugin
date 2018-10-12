@@ -2,7 +2,6 @@
 Tools for saving workspace and source files exported from the WebInspector runtime.
 
 ---
----
 ##### version-0-1-0 #####
 
 **Updates**
@@ -42,7 +41,6 @@ Added command option utility helper classes for loading/managing plugin options.
 ``
 Added command option handler "save-curl-command-file-list" for generating and exporting a script file containing curl download command statements for each workspace file (remote site source).
 ``
-
 ---
 ### WebInspectorPlugin: Chrome DevTool Extension Toolset on GitHub
 The following repositories provide additional information and resources:
